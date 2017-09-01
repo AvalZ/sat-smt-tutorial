@@ -21,7 +21,7 @@ coordinates:
 s = Solver()
 
 # using list comprehension, construct array of arrays of BitVec instances:
-cells = [[BitVec('cell%d%d' % (r,c), 16) for c in range(9)] for r in range(9)]
+cells = [[Int('cell%d%d' % (r,c)) for c in range(9)] for r in range(9)]
 
 # http://www.norvig.com/sudoku.html
 # http://www.mirror.co.uk/news/weird-news/worlds-hardest-sudoku-can-you-242294
@@ -32,54 +32,41 @@ current_column=0
 current_row=0
 for i in puzzle:
     if i != '.':
-        s.add(cells[current_row][current_column]==BitVecVal(int(i),16))
+        s.add(cells[current_row][current_column]==int(i))
     current_column += 1
     if current_column == 9:
         current_column = 0
         current_row += 1
 
-one = BitVecVal(1,16)
-mask = BitVecVal(0b1111111110, 16)
-
+# Range constraints for cell values
+for r in range(9):
+    for c in range(9):
+        s.add(cells[r][c]>=1)
+        s.add(cells[r][c]<=9)
 
 # for all 9 rows
 for r in range(9):
-    s.add(((one<<cells[r][0]) |
-        (one<<cells[r][1]) |
-        (one<<cells[r][2]) |
-        (one<<cells[r][3]) |
-        (one<<cells[r][4]) |
-        (one<<cells[r][5]) |
-        (one<<cells[r][6]) |
-        (one<<cells[r][7]) |
-        (one<<cells[r][8]))==mask)
+    s.add(Distinct(*[cells[r][i] for i in range(9)]))
 
 # for all 9 columns
 for c in range(9):
-    s.add(((one<<cells[0][c]) |
-        (one<<cells[1][c]) |
-        (one<<cells[2][c]) |
-        (one<<cells[3][c]) |
-        (one<<cells[4][c]) |
-        (one<<cells[5][c]) |
-        (one<<cells[6][c]) |
-        (one<<cells[7][c]) |
-        (one<<cells[8][c]))==mask)
+    s.add(Distinct(*[cells[i][c] for i in range(9)]))
 
 # enumerate all 9 squares
 for r in range(0,9,3):
     for c in range(0,9,3):
         # add constraints for each 3*3 square
-        s.add(
-                (one<<cells[r+0][c+0]) |
-                (one<<cells[r+0][c+1]) |
-                (one<<cells[r+0][c+2]) |
-                (one<<cells[r+1][c+0]) |
-                (one<<cells[r+1][c+1]) |
-                (one<<cells[r+1][c+2]) |
-                (one<<cells[r+2][c+0]) |
-                (one<<cells[r+2][c+1]) |
-                (one<<cells[r+2][c+2]) == mask)
+        s.add(Distinct(
+            cells[r+0][c+0],
+            cells[r+0][c+1],
+            cells[r+0][c+2],
+            cells[r+1][c+0],
+            cells[r+1][c+1],
+            cells[r+1][c+2],
+            cells[r+2][c+0],
+            cells[r+2][c+1],
+            cells[r+2][c+2]
+            ))
 
 s.check()
 
